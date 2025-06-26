@@ -24,7 +24,7 @@ def create_tables():
 # return all pages
 @app.route('/pages', methods=['GET'])
 def get_pages():
-    pages = Page.query.order_by(Page.title).all()  # Query all pages from DB (ordered by title)
+    pages = Page.query.order_by(Page.id).all()  # Query all pages from DB (ordered by id)
     return jsonify([p.to_dict() for p in pages])  # Convert each to dict
 
 # create a new page
