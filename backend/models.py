@@ -1,13 +1,15 @@
 # Work on Second (database model)
 
-from config import db
+from flask_sqlalchemy import SQLAlchemy
+
+db = SQLAlchemy()
 
 class Page(db.Model):
     id = db.Column(db.Integer, primary_key=True) # always required
     title = db.Column(db.String(100), nullable=False) # string of size up to 100, null values not allowed
     parent_id = db.Column(db.Integer, db.ForeignKey('page.id'), nullable=True) 
     children = db.relationship('Page')
-    blocks = db.relationship('Block',     # Page contains Blocks
+    blocks = db.relationship('Block', # Page contains Blocks
                              backref='page', # backref adds .page attr to each Block
                              cascade='all, delete-orphan') # cascade tells sqlalch if delete parent, auto delete all children
 
@@ -21,7 +23,7 @@ class Page(db.Model):
 class Block(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     page_id = db.Column(db.Integer, db.ForeignKey('page.id'), nullable=False)
-    type = db.Column(db.String(20), nullable=False) # text, todo, heading, etc
+    type = db.Column(db.String(20), nullable=False) # ex: text, todo, heading, etc
     content = db.Column(db.Text)
     order_index = db.Column(db.Integer, nullable=False)
 
