@@ -10,8 +10,17 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@tiptap/core": "^2.22.3",
+    "@tiptap/extension-code-block-lowlight": "^2.22.3",
+    "@tiptap/extension-image": "^2.22.3",
+    "@tiptap/extension-placeholder": "^2.22.3",
+    "@tiptap/react": "^2.22.3",
+    "@tiptap/starter-kit": "^2.22.3",
+    "lowlight": "^3.3.0",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-beautiful-dnd": "^13.1.1",
+    "react-dom": "^19.1.0",
+    "tiptap": "^0.15.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.29.0",

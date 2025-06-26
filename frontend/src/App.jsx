@@ -7,13 +7,20 @@ function App() {
   const [blocks, setBlocks] = useState([]);
   const [newPageTitle, setNewPageTitle] = useState('');
   const [darkMode, setDarkMode] = useState(false);
+  const [undoStack, setUndoStack] = useState([]);
+  const [redoStack, setRedoStack] = useState([]);
 
   const site = 'http://127.0.0.1:5000';
 
   useEffect(() => {
     fetch(`${site}/pages`)
       .then(res => res.json())
-      .then(setPages);
+      .then(pages => {
+        setPages(pages);
+        if (pages.length > 0) {
+          selectPage(pages[0]);  // Automatically load first page and blocks
+        }
+      });
   }, []);
 
   useEffect(() => {
@@ -45,6 +52,8 @@ function App() {
   };
 
   const renamePage = (pageId, newTitle) => {
+    pushToUndoStack();
+
     fetch(`${site}/pages/${pageId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -69,14 +78,15 @@ function App() {
     });
   };
 
-  const addBlock = () => {
+  const addBlock = (type = 'text') => {
+    if (!selectedPage) return; // avoid errors if no page selected
     fetch(`${site}/blocks`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         page_id: selectedPage.id,
-        type: 'text',
-        content: '',
+        type: type,
+        content: type === 'todo' ? { checked: false, text: '' } : '',
         order_index: blocks.length,
       }),
     })
@@ -85,6 +95,8 @@ function App() {
   };
 
   const updateBlock = (blockId, content) => {
+    pushToUndoStack();
+
     fetch(`${site}/blocks/${blockId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -109,6 +121,43 @@ function App() {
     if (el.style.height !== newHeight) {
       el.style.height = newHeight;
     }
+  };
+
+  const snapshotState = () => ({
+    selectedPage,
+    blocks: blocks.map(b => ({ ...b })), // shallow copy
+  });
+
+  const pushToUndoStack = () => {
+    setUndoStack(prev => {
+      const newStack = [...prev, snapshotState()];
+      return newStack.length > 20 ? newStack.slice(1) : newStack; // keep max 20
+    });
+    setRedoStack([]); // clear redo on new action
+  };
+
+  const undo = () => {
+    if (undoStack.length === 0) return;
+
+    const prevState = undoStack[undoStack.length - 1];
+    setUndoStack(undoStack.slice(0, -1));
+    
+    setRedoStack(prev => [...prev, snapshotState()]);
+
+    setSelectedPage(prevState.selectedPage);
+    setBlocks(prevState.blocks);
+  };
+
+  const redo = () => {
+    if (redoStack.length === 0) return;
+
+    const nextState = redoStack[redoStack.length - 1];
+    setRedoStack(redoStack.slice(0, -1));
+
+    setUndoStack(prev => [...prev, snapshotState()]);
+
+    setSelectedPage(nextState.selectedPage);
+    setBlocks(nextState.blocks);
   };
 
   return (
@@ -165,21 +214,58 @@ function App() {
               placeholder="Page title"
               style={{ overflow: 'hidden', resize: 'none' }}
             />
-            {blocks.map((block) => (
-              <div key={block.id} className="block-row">
-                <textarea
-                  value={block.content}
-                  onChange={(e) => {
-                    updateBlock(block.id, e.target.value);
-                    autoGrow(e.target);
-                  }}
-                  placeholder="Start typing..."
-                  style={{ overflow: 'hidden', resize: 'none' }}
-                />
-                <button onClick={() => deleteBlock(block.id)}>🗑️</button>
-              </div>
-            ))}
-            <button onClick={addBlock}>+ Add Block</button>
+            {blocks.map((block) => {
+              if (block.type === 'todo') {
+                return (
+                  <div key={block.id} className="block-row todo-block">
+                    <input
+                      type="checkbox"
+                      checked={block.content.checked}
+                      onChange={() => {
+                        updateBlock(block.id, {
+                          ...block.content,
+                          checked: !block.content.checked,
+                        });
+                      }}
+                    />
+                    <textarea
+                      value={block.content.text}
+                      onChange={(e) => {
+                        updateBlock(block.id, { ...block.content, text: e.target.value });
+                        autoGrow(e.target);
+                      }}
+                      placeholder="Todo item"
+                      style={{ overflow: 'hidden', resize: 'none' }}
+                    />
+                    <button onClick={() => deleteBlock(block.id)}>🗑️</button>
+                  </div>
+                );
+              } else {
+                // Text block
+                return (
+                  <div key={block.id} className="block-row">
+                    <textarea
+                      value={block.content}
+                      onChange={(e) => {
+                        updateBlock(block.id, e.target.value);
+                        autoGrow(e.target);
+                      }}
+                      placeholder="Start typing..."
+                      style={{ overflow: 'hidden', resize: 'none' }}
+                    />
+                    <button onClick={() => deleteBlock(block.id)}>🗑️</button>
+                  </div>
+                );
+              }
+            })}
+            <div className="add-block-menu">
+              <button onClick={() => addBlock('text')}>+ Add Text Block</button>
+              <button onClick={() => addBlock('todo')}>+ Add Todo Block</button>
+            </div>
+            <div className="undo-redo-buttons">
+              <button onClick={undo} disabled={undoStack.length === 0}>Undo</button>
+              <button onClick={redo} disabled={redoStack.length === 0}>Redo</button>
+            </div>
           </>
         ) : (
           <div className="home-page">
@@ -190,13 +276,9 @@ function App() {
             </p>
             <h2>Coming Updates...</h2>
             <ul>
-              <li>Markdown or a rich text editor</li>
-              <li>Image/video embeds</li>
-              <li>Checkbox/todo list blocks</li>
-              <li>Reorder blocks</li>
-              <li>Nested Pages</li>
-              <li>Undo/Redo by tracking edits per block/page</li>
               <li>Tags to blocks and pages, for filtering many at once</li>
+              <li>Level system for word count + word count + character count</li>
+              <li>Chatbot / Summarizer</li>
             </ul>
           </div>
         )}
