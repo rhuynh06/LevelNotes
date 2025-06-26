@@ -219,6 +219,16 @@ button:hover {
   color: var(--text);
 }
 
+ul {
+  padding: 0;
+  margin: 0 auto;
+  width: fit-content; /* or set a fixed width */
+}
+
+li {
+  text-align: left;
+}
+
 /* Toggle Mode Button */
 .toggle-mode {
   margin-top: auto;

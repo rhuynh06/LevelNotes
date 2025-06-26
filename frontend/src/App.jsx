@@ -103,8 +103,12 @@ function App() {
   };
 
   const autoGrow = (el) => {
+    if (!el) return;
     el.style.height = 'auto';
-    el.style.height = el.scrollHeight + 'px';
+    const newHeight = el.scrollHeight + 'px';
+    if (el.style.height !== newHeight) {
+      el.style.height = newHeight;
+    }
   };
 
   return (
@@ -154,22 +158,21 @@ function App() {
             <textarea
               className="page-title"
               value={selectedPage.title}
-              onChange={e => {
+              onChange={(e) => {
                 renamePage(selectedPage.id, e.target.value);
                 autoGrow(e.target);
               }}
-              ref={(el) => el && autoGrow(el)}
               placeholder="Page title"
+              style={{ overflow: 'hidden', resize: 'none' }}
             />
             {blocks.map((block) => (
               <div key={block.id} className="block-row">
                 <textarea
                   value={block.content}
-                  onChange={e => {
+                  onChange={(e) => {
                     updateBlock(block.id, e.target.value);
                     autoGrow(e.target);
                   }}
-                  ref={(el) => el && autoGrow(el)}
                   placeholder="Start typing..."
                   style={{ overflow: 'hidden', resize: 'none' }}
                 />
@@ -185,6 +188,16 @@ function App() {
               This is the home page. Select a page or create a new one to
               start taking notes.
             </p>
+            <h2>Coming Updates...</h2>
+            <ul>
+              <li>Markdown or a rich text editor</li>
+              <li>Image/video embeds</li>
+              <li>Checkbox/todo list blocks</li>
+              <li>Reorder blocks</li>
+              <li>Nested Pages</li>
+              <li>Undo/Redo by tracking edits per block/page</li>
+              <li>Tags to blocks and pages, for filtering many at once</li>
+            </ul>
           </div>
         )}
       </div>
