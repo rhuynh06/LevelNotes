@@ -9,6 +9,7 @@ function App() {
   const [darkMode, setDarkMode] = useState(false);
   const [undoStack, setUndoStack] = useState([]);
   const [redoStack, setRedoStack] = useState([]);
+  const [level, setLevel] = useState(0);
 
   const site = 'http://127.0.0.1:5000';
 
@@ -276,7 +277,7 @@ function App() {
             </p>
             <h2>Coming Updates...</h2>
             <ul>
-              <li>Tags to blocks and pages, for filtering many at once</li>
+              <li>Different Users</li>
               <li>Level system for word count + word count + character count</li>
               <li>Chatbot / Summarizer</li>
             </ul>
