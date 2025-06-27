@@ -4,6 +4,7 @@ import dark from './assets/dark.png';
 import light from './assets/light.png';
 import show from './assets/show.png';
 import hide from './assets/hide.png';
+import BACKEND_URL from './config.jsx'
 
 function App() {
   const [pages, setPages] = useState([]);
@@ -21,7 +22,7 @@ function App() {
   const titleRef = useRef(null);
   const editableRefs = useRef({});
 
-  const site = import.meta.env.RENDER_BACKEND_URL || 'http://localhost:5050';
+  const site = BACKEND_URL
 
   // Auto-grow function for contentEditable divs
   function autoGrow(el) {

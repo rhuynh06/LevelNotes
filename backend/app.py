@@ -5,6 +5,8 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from models import db, Page, Block, User
 from sqlalchemy import func, cast, String
+from dotenv import load_dotenv
+load_dotenv()
 import os
 
 # to get user_id
@@ -30,7 +32,7 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SECURE'] = False
 
-frontend_origin = os.environ.get("https://rhuynh06.github.io", "http://localhost:5173")
+frontend_origin = os.environ.get("FRONTEND_URL", "http://localhost:5173")
 CORS(app, origins=[frontend_origin], supports_credentials=True)
 
 # database configuration (using SQLite for local development)
