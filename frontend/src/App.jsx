@@ -2,6 +2,8 @@ import { useEffect, useState, useRef } from 'react';
 import './App.css';
 import dark from './assets/dark.png'
 import light from './assets/light.png'
+import show from './assets/show.png'
+import hide from './assets/hide.png'
 
 function App() {
   const [pages, setPages] = useState([]);
@@ -17,12 +19,13 @@ function App() {
   const [authPassword, setAuthPassword] = useState('');
   const prevLevel = useRef(null);
   const [levelUp, setLevelUp] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const site = 'http://localhost:5050';
 
   const triggerLevelUpAnimation = () => {
     setLevelUp(true);
-    setTimeout(() => setLevelUp(false), 2000);
+    setTimeout(() => setLevelUp(false), 1000);
   };
 
   useEffect(() => {
@@ -251,6 +254,7 @@ function App() {
       setPages([]);
       setSelectedPage(null);
       setBlocks([]);
+      window.location.reload(); // force rerender
     });
   };
 
@@ -263,13 +267,26 @@ function App() {
             value={authUsername}
             onChange={(e) => setAuthUsername(e.target.value)}
             placeholder="Username"
+            autoComplete="username"
+            required
           />
-          <input
-            type="password"
-            value={authPassword}
-            onChange={(e) => setAuthPassword(e.target.value)}
-            placeholder="Password"
-          />
+          <div className="password-field">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              value={authPassword}
+              onChange={(e) => setAuthPassword(e.target.value)}
+              placeholder="Password"
+              autoComplete={authMode === 'login' ? 'current-password' : 'new-password'}
+              required
+            />
+            <button
+              type="button"
+              className="toggle-password"
+              onClick={() => setShowPassword(!showPassword)}
+            >
+              {showPassword ? <img src={hide}></img> : <img src={show}></img>}
+            </button>
+          </div>
           <button onClick={authMode === 'login' ? login : register}>
             {authMode === 'login' ? 'Login' : 'Register'}
           </button>
@@ -298,11 +315,23 @@ function App() {
               Home
             </h3>
             <input
+
               value={newPageTitle}
               onChange={(e) => setNewPageTitle(e.target.value)}
               placeholder="New page title"
+              required
             />
-            <button onClick={createPage}>Add Page</button>
+            <button
+              onClick={() => {
+                if (newPageTitle.trim()) {
+                  createPage();
+                } else {
+                  alert("Page title is required.");
+                }
+              }}
+            >
+              Add Page
+            </button>
             {pages.map((page) => (
               <div
                 key={page.id}
@@ -327,9 +356,7 @@ function App() {
               <div className="auth-info">
                 Logged in as <strong>{user.username}</strong><br />
                 Level {user.level}
-                {levelUp && (
-                  <div className="level-up-popup">🎉 Level Up!</div>
-                )}
+                {levelUp && (<div className="level-up-popup">🎉 Level Up!</div>)}
                 <progress
                   value={user.progress}
                   max={user.next_level_words}
@@ -376,8 +403,11 @@ function App() {
                             updateBlock(block.id, { ...block.content, text: e.target.value });
                             autoGrow(e.target);
                           }}
-                          placeholder="Todo item"
-                          style={{ overflow: 'hidden', resize: 'none' }}
+                          placeholder="TODO"
+                          style={{
+                            overflow: 'hidden',
+                            resize: 'none',
+                            textDecoration: block.content.checked ? 'line-through' : 'none'}}
                         />
                       </>
                     ) : (
@@ -394,13 +424,11 @@ function App() {
                     <button onClick={() => deleteBlock(block.id)}>🗑️</button>
                   </div>
                 ))}
-                <div className="add-block-menu">
-                  <button onClick={() => addBlock('text')}>+ Add Text Block</button>
-                  <button onClick={() => addBlock('todo')}>+ Add Todo Block</button>
-                </div>
-                <div className="undo-redo-buttons">
-                  <button onClick={undo} disabled={undoStack.length === 0}>Undo</button>
-                  <button onClick={redo} disabled={redoStack.length === 0}>Redo</button>
+                <div className="edit-block-menu">
+                  <button onClick={() => addBlock('text')}>+ Add Text</button>
+                  <button onClick={() => addBlock('todo')}>+ Add Todo</button>
+                  <button onClick={undo} disabled={undoStack.length === 0}>Undo ↺</button>
+                  <button onClick={redo} disabled={redoStack.length === 0}>Redo ↻</button>
                 </div>
               </>
             ) : (
@@ -410,7 +438,7 @@ function App() {
                 <p>Select a page or create a new one to start taking notes.</p>
                 <h2>Coming Updates...</h2>
                 <ul>
-                  <li>Every level should add new avatar to user selection (from weakest to strongest in solo leveling)</li>
+                  <li>Fix Block Textarea</li>
                   <li>Chatbot / Summarizer</li>
                 </ul>
               </div>
