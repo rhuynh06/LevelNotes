@@ -1,9 +1,9 @@
 import { useEffect, useState, useRef } from 'react';
 import './App.css';
-import dark from './assets/dark.png'
-import light from './assets/light.png'
-import show from './assets/show.png'
-import hide from './assets/hide.png'
+import dark from './assets/dark.png';
+import light from './assets/light.png';
+import show from './assets/show.png';
+import hide from './assets/hide.png';
 
 function App() {
   const [pages, setPages] = useState([]);
@@ -11,17 +11,24 @@ function App() {
   const [blocks, setBlocks] = useState([]);
   const [newPageTitle, setNewPageTitle] = useState('');
   const [darkMode, setDarkMode] = useState(false);
-  const [undoStack, setUndoStack] = useState([]);
-  const [redoStack, setRedoStack] = useState([]);
   const [user, setUser] = useState(null);
   const [authMode, setAuthMode] = useState('login');
   const [authUsername, setAuthUsername] = useState('');
   const [authPassword, setAuthPassword] = useState('');
-  const prevLevel = useRef(null);
   const [levelUp, setLevelUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const prevLevel = useRef(null);
+  const titleRef = useRef(null);
+  const editableRefs = useRef({});
 
   const site = 'http://localhost:5050';
+
+  // Auto-grow function for contentEditable divs
+  function autoGrow(el) {
+    if (!el) return;
+    el.style.height = 'auto'; // Reset height
+    el.style.height = el.scrollHeight + 'px'; // Grow to content height
+  }
 
   const triggerLevelUpAnimation = () => {
     setLevelUp(true);
@@ -30,21 +37,36 @@ function App() {
 
   useEffect(() => {
     fetch(`${site}/user/stats`, { method: 'GET', credentials: 'include' })
-      .then(res => res.ok ? res.json() : null)
+      .then(res => (res.ok ? res.json() : null))
       .then(data => {
-          if (data?.username) {
-            setUser(data);
-            fetchPages();
+        if (data?.username) {
+          setUser(data);
+          fetchPages();
 
-            if (prevLevel.current !== null && data.level > prevLevel.current) {
-              triggerLevelUpAnimation();
-            }
-
-            prevLevel.current = data.level;
+          if (prevLevel.current !== null && data.level > prevLevel.current) {
+            triggerLevelUpAnimation();
           }
+
+          prevLevel.current = data.level;
         }
-      );
+      });
   }, []);
+
+  // Sync title contentEditable text & auto-grow on selectedPage title change
+  useEffect(() => {
+    if (titleRef.current && selectedPage) {
+      if (titleRef.current.innerText !== selectedPage.title) {
+        titleRef.current.innerText = selectedPage.title;
+      }
+      autoGrow(titleRef.current);
+    }
+  }, [selectedPage?.title]);
+
+  const onTitleInput = (e) => {
+    const el = e.currentTarget;
+    autoGrow(el);
+    renamePage(selectedPage.id, el.innerText);
+  };
 
   const fetchPages = () => {
     fetch(`${site}/pages`, { credentials: 'include' })
@@ -87,7 +109,7 @@ function App() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title: newPageTitle }),
-      credentials: 'include'
+      credentials: 'include',
     })
       .then(res => res.json())
       .then(page => {
@@ -97,12 +119,11 @@ function App() {
   };
 
   const renamePage = (pageId, newTitle) => {
-    pushToUndoStack();
     fetch(`${site}/pages/${pageId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title: newTitle }),
-      credentials: 'include'
+      credentials: 'include',
     })
       .then(res => res.json())
       .then(updated => {
@@ -134,77 +155,39 @@ function App() {
         content: type === 'todo' ? { checked: false, text: '' } : '',
         order_index: blocks.length,
       }),
-      credentials: 'include'
+      credentials: 'include',
     })
       .then(res => res.json())
-      .then((block) => setBlocks([...blocks, block]));
+      .then(block => setBlocks([...blocks, block]));
   };
 
   const updateBlock = (blockId, content) => {
-    pushToUndoStack();
     fetch(`${site}/blocks/${blockId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ content }),
-      credentials: 'include'
+      credentials: 'include',
     })
       .then(res => res.json())
-      .then((updated) => {
-        setBlocks(blocks.map((b) => (b.id === blockId ? updated : b)));
+      .then(updated => {
+        setBlocks(blocks.map(b => (b.id === blockId ? updated : b)));
         fetchStats();
-      });
+      })
   };
 
   const deleteBlock = (blockId) => {
     fetch(`${site}/blocks/${blockId}`, { method: 'DELETE', credentials: 'include' }).then(() => {
-      setBlocks(blocks.filter((b) => b.id !== blockId));
+      setBlocks(blocks.filter(b => b.id !== blockId));
     });
-  };
-
-  const autoGrow = (el) => {
-    if (!el) return;
-    el.style.height = 'auto';
-    el.style.height = el.scrollHeight + 'px';
-  };
-
-  const snapshotState = () => ({
-    selectedPage,
-    blocks: blocks.map(b => ({ ...b })),
-  });
-
-  const pushToUndoStack = () => {
-    setUndoStack(prev => {
-      const newStack = [...prev, snapshotState()];
-      return newStack.length > 20 ? newStack.slice(1) : newStack;
-    });
-    setRedoStack([]);
-  };
-
-  const undo = () => {
-    if (undoStack.length === 0) return;
-    const prevState = undoStack[undoStack.length - 1];
-    setUndoStack(undoStack.slice(0, -1));
-    setRedoStack(prev => [...prev, snapshotState()]);
-    setSelectedPage(prevState.selectedPage);
-    setBlocks(prevState.blocks);
-  };
-
-  const redo = () => {
-    if (redoStack.length === 0) return;
-    const nextState = redoStack[redoStack.length - 1];
-    setRedoStack(redoStack.slice(0, -1));
-    setUndoStack(prev => [...prev, snapshotState()]);
-    setSelectedPage(nextState.selectedPage);
-    setBlocks(nextState.blocks);
   };
 
   const login = () => {
     fetch(`${site}/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ username: authUsername, password: authPassword }),
-      })
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ username: authUsername, password: authPassword }),
+    })
       .then(res => res.json())
       .then(data => {
         if (data.error) {
@@ -254,7 +237,7 @@ function App() {
       setPages([]);
       setSelectedPage(null);
       setBlocks([]);
-      window.location.reload(); // force rerender
+      window.location.reload();
     });
   };
 
@@ -284,7 +267,7 @@ function App() {
               className="toggle-password"
               onClick={() => setShowPassword(!showPassword)}
             >
-              {showPassword ? <img src={hide}></img> : <img src={show}></img>}
+              {showPassword ? <img src={hide} alt="hide" /> : <img src={show} alt="show" />}
             </button>
           </div>
           <button onClick={authMode === 'login' ? login : register}>
@@ -315,7 +298,6 @@ function App() {
               Home
             </h3>
             <input
-
               value={newPageTitle}
               onChange={(e) => setNewPageTitle(e.target.value)}
               placeholder="New page title"
@@ -326,7 +308,7 @@ function App() {
                 if (newPageTitle.trim()) {
                   createPage();
                 } else {
-                  alert("Page title is required.");
+                  alert('Page title is required.');
                 }
               }}
             >
@@ -354,17 +336,18 @@ function App() {
             </button>
             {user?.username && (
               <div className="auth-info">
-                Logged in as <strong>{user.username}</strong><br />
+                Logged in as <strong>{user.username}</strong>
+                <br />
                 Level {user.level}
-                {levelUp && (<div className="level-up-popup">🎉 Level Up!</div>)}
-                <progress
-                  value={user.progress}
-                  max={user.next_level_words}
-                  style={{ width: '100%' }}
-                />
+                {levelUp && <div className="level-up-popup">🎉 Level Up!</div>}
+                <progress value={user.progress} max={user.next_level_words} style={{ width: '100%' }} />
                 <div className="info-footer">
-                  <small>{user.progress} / {user.next_level_words} words</small>
-                  <button className="logout" onClick={logout}>Logout</button>
+                  <small>
+                    {user.progress} / {user.next_level_words} words
+                  </small>
+                  <button className="logout" onClick={logout}>
+                    Logout
+                  </button>
                 </div>
               </div>
             )}
@@ -373,19 +356,42 @@ function App() {
           <div className="editor">
             {selectedPage ? (
               <>
-                <textarea
-                  className="page-title"
-                  value={selectedPage.title}
-                  onChange={(e) => {
-                    renamePage(selectedPage.id, e.target.value);
-                    autoGrow(e.target);
-                  }}
-                  placeholder="Page title"
-                  style={{ overflow: 'hidden', resize: 'none' }}
+                <div
+                  ref={titleRef}
+                  contentEditable
+                  suppressContentEditableWarning={true}
+                  className="page-title content-editable"
+                  onInput={onTitleInput}
+                  data-placeholder="Page title"
                 />
                 {blocks.map((block) => (
-                  <div key={block.id} className={`block-row ${block.type === 'todo' ? 'todo-block' : ''}`}>
-                    {block.type === 'todo' ? (
+                  <div
+                    key={block.id}
+                    className={`block-row ${block.type === 'todo' ? 'todo-block' : ''}`}
+                  >
+                    {block.type === 'text' ? (
+                      <div
+                        contentEditable
+                        suppressContentEditableWarning={true}
+                        ref={(el) => {
+                          if (el && el.innerText !== block.content) {
+                            editableRefs.current[block.id] = el;
+                            el.innerText = block.content
+                          }
+                        }}
+                        onInput={(e) => {
+                          autoGrow(e.currentTarget);
+                          const text = e.currentTarget.innerText;
+                          updateBlock(block.id, text);
+                        }}
+                        onBlur={(e) => {
+                          const text = e.currentTarget.innerText;
+                          updateBlock(block.id, text);
+                        }}
+                        data-placeholder="Start typing..."
+                        className="block-editable content-editable"
+                      />
+                    ) : (
                       <>
                         <input
                           type="checkbox"
@@ -397,29 +403,33 @@ function App() {
                             })
                           }
                         />
-                        <textarea
-                          value={block.content.text}
-                          onChange={(e) => {
-                            updateBlock(block.id, { ...block.content, text: e.target.value });
-                            autoGrow(e.target);
+                        <div
+                          contentEditable
+                          suppressContentEditableWarning={true}
+                          ref={(el) => {
+                            if (el && el.innerText !== block.content.text) {
+                              editableRefs.current[block.id] = el;
+                              el.innerText = block.content.text
+                            }
                           }}
-                          placeholder="TODO"
+                          onInput={(e) => {
+                            autoGrow(e.currentTarget);
+                            const text = e.currentTarget.innerText;
+                            updateBlock(block.id, { ...block.content, text });
+                          }}
+                          onBlur={(e) => {
+                            const text = e.currentTarget.innerText;
+                            updateBlock(block.id, { ...block.content, text });
+                          }}
+                          data-placeholder="TODO"
+                          className="block-editable content-editable"
                           style={{
                             overflow: 'hidden',
                             resize: 'none',
-                            textDecoration: block.content.checked ? 'line-through' : 'none'}}
+                            textDecoration: block.content.checked ? 'line-through' : 'none'
+                          }}
                         />
                       </>
-                    ) : (
-                      <textarea
-                        value={block.content}
-                        onChange={(e) => {
-                          updateBlock(block.id, e.target.value);
-                          autoGrow(e.target);
-                        }}
-                        placeholder="Start typing..."
-                        style={{ overflow: 'hidden', resize: 'none' }}
-                      />
                     )}
                     <button onClick={() => deleteBlock(block.id)}>🗑️</button>
                   </div>
@@ -427,14 +437,12 @@ function App() {
                 <div className="edit-block-menu">
                   <button onClick={() => addBlock('text')}>+ Add Text</button>
                   <button onClick={() => addBlock('todo')}>+ Add Todo</button>
-                  <button onClick={undo} disabled={undoStack.length === 0}>Undo ↺</button>
-                  <button onClick={redo} disabled={redoStack.length === 0}>Redo ↻</button>
                 </div>
               </>
             ) : (
               <div className="home-page">
                 <h1>Welcome to LevelNotes!</h1>
-                <img src={darkMode ? dark : light}></img>
+                <img src={darkMode ? dark : light} alt="theme" />
                 <p>Select a page or create a new one to start taking notes.</p>
                 <h2>Coming Updates...</h2>
                 <ul>

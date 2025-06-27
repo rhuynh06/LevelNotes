@@ -166,18 +166,14 @@ input:focus {
   line-height: 1.4;
   font-size: 2.2rem;
   font-weight: 700;
-  border: none;
   background: transparent;
   width: 100%;
   overflow: hidden;
   resize: none;
 }
 
-textarea {
-  min-height: 80px;
-  overflow: hidden;
-  resize: none;
-  line-height: 1.4;
+.page-title.content-editable {
+  border: none;
 }
 
 /* Blocks */
@@ -186,43 +182,6 @@ textarea {
   gap: 12px;
   margin-bottom: 16px;
   align-items: flex-start;
-}
-
-textarea {
-  flex-grow: 1;
-  background: transparent;
-  color: var(--text);
-  padding: 14px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  resize: vertical;
-  min-height: 80px;
-  transition: border-color 0.3s ease;
-}
-
-textarea:focus {
-  border-color: var(--accent);
-  outline: none;
-}
-
-.block-textarea {
-  width: 100%;
-  min-height: 160px;
-  font-size: 1.05rem;
-  line-height: 1.6;
-  padding: 16px;
-  border: 1px solid var(--border-dark);
-  border-radius: 8px;
-  background-color: #161720;
-  color: var(--text-primary);
-  resize: none;
-  transition: border-color var(--transition);
-  overflow-y: hidden;
-}
-
-.block-textarea:focus {
-  border-color: var(--accent-glow);
-  outline: none;
 }
 
 .edit-block-menu {
@@ -268,12 +227,6 @@ textarea:focus {
 .todo-block input[type="checkbox"] {
   width: 20px;
   height: 20px;
-}
-
-.todo-block textarea {
-  flex-grow: 1;
-  min-height: 30px;
-  resize: none;
 }
 
 /* Buttons */
@@ -448,4 +401,69 @@ div.auth-box {
 
 .auth-box p button:hover {
   color: white;
+}
+
+/* ,... */
+.content-editable {
+  min-height: 1.2em;         /* roughly 1 line height */
+  width: 100%;               /* full width */
+  border: 1px solid var(--border, #ccc);
+  padding: 8px;
+  box-sizing: border-box;
+  overflow-y: hidden;        /* hide scrollbar */
+  white-space: pre-wrap;     /* allow wrapping and preserve spaces */
+  line-height: 1.2em;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 1rem;
+  outline: none;
+  resize: none;              /* prevent manual resizing */
+  background-color: transparent;
+}
+
+/* Placeholder effect for contentEditable */
+.content-editable:empty::before {
+  content: attr(data-placeholder);
+  color: #888;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Page title specific styles */
+.page-title {
+  font-weight: bold;
+  font-size: 1.4rem;
+  margin-bottom: 12px;
+}
+
+/* Editable block styling */
+.block-editable {
+  margin-left: 8px;
+  flex-grow: 1;
+  min-height: 1.2em;
+  white-space: pre-wrap;
+}
+
+/* Todo block layout */
+.todo-block {
+  display: flex;
+  align-items: center;
+}
+
+.todo-block input[type='checkbox'] {
+  flex-shrink: 0;
+  margin-right: 8px;
+}
+
+/* Block row styling */
+.block-row {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.block-row button {
+  margin-left: 8px;
+  flex-shrink: 0;
+  cursor: pointer;
 }
