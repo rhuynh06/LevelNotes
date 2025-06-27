@@ -9,4 +9,4 @@ COPY . .
 
 EXPOSE 5050
 
-CMD ["python", "app.py"]
+CMD ["python", "app_deploy.py"]

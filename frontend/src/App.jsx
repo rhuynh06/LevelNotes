@@ -4,7 +4,7 @@ import dark from './assets/dark.png';
 import light from './assets/light.png';
 import show from './assets/show.png';
 import hide from './assets/hide.png';
-import config from './config.jsx';
+import { BACKEND_URL } from "../config";
 
 function App() {
   const [pages, setPages] = useState([]);
@@ -22,7 +22,7 @@ function App() {
   const titleRef = useRef(null);
   const editableRefs = useRef({});
 
-  const site = config.backendUrl;
+  const site = BACKEND_URL;
 
   // Auto-grow function for contentEditable divs
   function autoGrow(el) {
