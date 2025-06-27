@@ -9,20 +9,34 @@ function App() {
   const [darkMode, setDarkMode] = useState(false);
   const [undoStack, setUndoStack] = useState([]);
   const [redoStack, setRedoStack] = useState([]);
-  const [level, setLevel] = useState(0);
+  const [user, setUser] = useState(null);
+  const [authMode, setAuthMode] = useState('login');
+  const [authUsername, setAuthUsername] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
 
-  const site = 'http://127.0.0.1:5000';
+  const site = 'http://localhost:5050';
 
   useEffect(() => {
-    fetch(`${site}/pages`)
+    fetch(`${site}/user/stats`, { method: 'GET', credentials: 'include' })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data?.username) {
+          setUser(data.username);
+          fetchPages();
+        }
+      });
+  }, []);
+
+  const fetchPages = () => {
+    fetch(`${site}/pages`, { credentials: 'include' })
       .then(res => res.json())
       .then(pages => {
         setPages(pages);
         if (pages.length > 0) {
-          selectPage(pages[0]);  // Automatically load first page and blocks
+          selectPage(pages[0]);
         }
       });
-  }, []);
+  };
 
   useEffect(() => {
     if (darkMode) {
@@ -34,7 +48,7 @@ function App() {
 
   const selectPage = (page) => {
     setSelectedPage(page);
-    fetch(`${site}/pages/${page.id}/blocks`)
+    fetch(`${site}/pages/${page.id}/blocks`, { credentials: 'include' })
       .then(res => res.json())
       .then(setBlocks);
   };
@@ -44,6 +58,7 @@ function App() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title: newPageTitle }),
+      credentials: 'include'
     })
       .then(res => res.json())
       .then(page => {
@@ -54,11 +69,11 @@ function App() {
 
   const renamePage = (pageId, newTitle) => {
     pushToUndoStack();
-
     fetch(`${site}/pages/${pageId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title: newTitle }),
+      credentials: 'include'
     })
       .then(res => res.json())
       .then(updated => {
@@ -70,7 +85,7 @@ function App() {
   };
 
   const deletePage = (pageId) => {
-    fetch(`${site}/pages/${pageId}`, { method: 'DELETE' }).then(() => {
+    fetch(`${site}/pages/${pageId}`, { method: 'DELETE', credentials: 'include' }).then(() => {
       setPages(pages.filter(p => p.id !== pageId));
       if (selectedPage?.id === pageId) {
         setSelectedPage(null);
@@ -80,7 +95,7 @@ function App() {
   };
 
   const addBlock = (type = 'text') => {
-    if (!selectedPage) return; // avoid errors if no page selected
+    if (!selectedPage) return;
     fetch(`${site}/blocks`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -90,6 +105,7 @@ function App() {
         content: type === 'todo' ? { checked: false, text: '' } : '',
         order_index: blocks.length,
       }),
+      credentials: 'include'
     })
       .then(res => res.json())
       .then((block) => setBlocks([...blocks, block]));
@@ -97,11 +113,11 @@ function App() {
 
   const updateBlock = (blockId, content) => {
     pushToUndoStack();
-
     fetch(`${site}/blocks/${blockId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ content }),
+      credentials: 'include'
     })
       .then(res => res.json())
       .then((updated) => {
@@ -110,7 +126,7 @@ function App() {
   };
 
   const deleteBlock = (blockId) => {
-    fetch(`${site}/blocks/${blockId}`, { method: 'DELETE' }).then(() => {
+    fetch(`${site}/blocks/${blockId}`, { method: 'DELETE', credentials: 'include' }).then(() => {
       setBlocks(blocks.filter((b) => b.id !== blockId));
     });
   };
@@ -118,172 +134,249 @@ function App() {
   const autoGrow = (el) => {
     if (!el) return;
     el.style.height = 'auto';
-    const newHeight = el.scrollHeight + 'px';
-    if (el.style.height !== newHeight) {
-      el.style.height = newHeight;
-    }
+    el.style.height = el.scrollHeight + 'px';
   };
 
   const snapshotState = () => ({
     selectedPage,
-    blocks: blocks.map(b => ({ ...b })), // shallow copy
+    blocks: blocks.map(b => ({ ...b })),
   });
 
   const pushToUndoStack = () => {
     setUndoStack(prev => {
       const newStack = [...prev, snapshotState()];
-      return newStack.length > 20 ? newStack.slice(1) : newStack; // keep max 20
+      return newStack.length > 20 ? newStack.slice(1) : newStack;
     });
-    setRedoStack([]); // clear redo on new action
+    setRedoStack([]);
   };
 
   const undo = () => {
     if (undoStack.length === 0) return;
-
     const prevState = undoStack[undoStack.length - 1];
     setUndoStack(undoStack.slice(0, -1));
-    
     setRedoStack(prev => [...prev, snapshotState()]);
-
     setSelectedPage(prevState.selectedPage);
     setBlocks(prevState.blocks);
   };
 
   const redo = () => {
     if (redoStack.length === 0) return;
-
     const nextState = redoStack[redoStack.length - 1];
     setRedoStack(redoStack.slice(0, -1));
-
     setUndoStack(prev => [...prev, snapshotState()]);
-
     setSelectedPage(nextState.selectedPage);
     setBlocks(nextState.blocks);
   };
 
+  const login = () => {
+    fetch(`${site}/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ username: authUsername, password: authPassword }),
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.error) {
+          alert(data.error);
+        } else {
+          fetch(`${site}/user/stats`, { credentials: 'include' })
+            .then(res => res.json())
+            .then(stats => {
+              if (stats.username) {
+                setUser(stats.username);
+                fetchPages();
+              } else {
+                console.error('Stats fetch failed:', stats);
+                alert('Login session failed. Check cookies.');
+              }
+            });
+        }
+      })
+      .catch(err => {
+        console.error('Login error:', err);
+      });
+  };
+
+  const register = () => {
+    fetch(`${site}/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: authUsername, password: authPassword }),
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.message) {
+          alert('Registration successful. Please login.');
+          setAuthMode('login');
+        } else {
+          alert(data.error || 'Registration failed');
+        }
+      });
+  };
+
+  const logout = () => {
+    fetch(`${site}/logout`, {
+      method: 'POST',
+      credentials: 'include',
+    }).then(() => {
+      setUser(null);
+      setPages([]);
+      setSelectedPage(null);
+      setBlocks([]);
+    });
+  };
+
   return (
     <div className="app-container">
-      <div className="sidebar">
-        <h3
-          className="clickable-header"
-          onClick={() => setSelectedPage(null)}
-          style={{ userSelect: 'none' }}
-        >
-          Home
-        </h3>
-        <input
-          value={newPageTitle}
-          onChange={(e) => setNewPageTitle(e.target.value)}
-          placeholder="New page title"
-        />
-        <button onClick={createPage}>Add Page</button>
-        {pages.map((page) => (
-          <div
-            key={page.id}
-            className={`page-item ${selectedPage?.id === page.id ? 'selected' : ''}`}
-            onClick={() => selectPage(page)}
-          >
-            <span>{page.title}</span>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                deletePage(page.id);
-              }}
+      {!user ? (
+        <div className="auth-box">
+          <h2>{authMode === 'login' ? 'Login' : 'Register'}</h2>
+          <input
+            value={authUsername}
+            onChange={(e) => setAuthUsername(e.target.value)}
+            placeholder="Username"
+          />
+          <input
+            type="password"
+            value={authPassword}
+            onChange={(e) => setAuthPassword(e.target.value)}
+            placeholder="Password"
+          />
+          <button onClick={authMode === 'login' ? login : register}>
+            {authMode === 'login' ? 'Login' : 'Register'}
+          </button>
+          <p>
+            {authMode === 'login' ? (
+              <>
+                Don't have an account?{' '}
+                <button onClick={() => setAuthMode('register')}>Register</button>
+              </>
+            ) : (
+              <>
+                Already have an account?{' '}
+                <button onClick={() => setAuthMode('login')}>Login</button>
+              </>
+            )}
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="sidebar">
+            <div className="auth-info">
+              Logged in as <strong>{user}</strong>{' '}
+              <button onClick={logout}>Logout</button>
+            </div>
+            <h3
+              className="clickable-header"
+              onClick={() => setSelectedPage(null)}
+              style={{ userSelect: 'none' }}
             >
-              🗑️
+              Home
+            </h3>
+            <input
+              value={newPageTitle}
+              onChange={(e) => setNewPageTitle(e.target.value)}
+              placeholder="New page title"
+            />
+            <button onClick={createPage}>Add Page</button>
+            {pages.map((page) => (
+              <div
+                key={page.id}
+                className={`page-item ${selectedPage?.id === page.id ? 'selected' : ''}`}
+                onClick={() => selectPage(page)}
+              >
+                <span>{page.title}</span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deletePage(page.id);
+                  }}
+                >
+                  🗑️
+                </button>
+              </div>
+            ))}
+            <button onClick={() => setDarkMode(!darkMode)} className="toggle-mode">
+              Toggle {darkMode ? 'Light' : 'Dark'} Mode
             </button>
           </div>
-        ))}
-        <button
-          onClick={() => setDarkMode(!darkMode)}
-          className="toggle-mode"
-        >
-          Toggle {darkMode ? 'Light' : 'Dark'} Mode
-        </button>
-      </div>
 
-      <div className="editor">
-        {selectedPage ? (
-          <>
-            <textarea
-              className="page-title"
-              value={selectedPage.title}
-              onChange={(e) => {
-                renamePage(selectedPage.id, e.target.value);
-                autoGrow(e.target);
-              }}
-              placeholder="Page title"
-              style={{ overflow: 'hidden', resize: 'none' }}
-            />
-            {blocks.map((block) => {
-              if (block.type === 'todo') {
-                return (
-                  <div key={block.id} className="block-row todo-block">
-                    <input
-                      type="checkbox"
-                      checked={block.content.checked}
-                      onChange={() => {
-                        updateBlock(block.id, {
-                          ...block.content,
-                          checked: !block.content.checked,
-                        });
-                      }}
-                    />
-                    <textarea
-                      value={block.content.text}
-                      onChange={(e) => {
-                        updateBlock(block.id, { ...block.content, text: e.target.value });
-                        autoGrow(e.target);
-                      }}
-                      placeholder="Todo item"
-                      style={{ overflow: 'hidden', resize: 'none' }}
-                    />
+          <div className="editor">
+            {selectedPage ? (
+              <>
+                <textarea
+                  className="page-title"
+                  value={selectedPage.title}
+                  onChange={(e) => {
+                    renamePage(selectedPage.id, e.target.value);
+                    autoGrow(e.target);
+                  }}
+                  placeholder="Page title"
+                  style={{ overflow: 'hidden', resize: 'none' }}
+                />
+                {blocks.map((block) => (
+                  <div key={block.id} className={`block-row ${block.type === 'todo' ? 'todo-block' : ''}`}>
+                    {block.type === 'todo' ? (
+                      <>
+                        <input
+                          type="checkbox"
+                          checked={block.content.checked}
+                          onChange={() =>
+                            updateBlock(block.id, {
+                              ...block.content,
+                              checked: !block.content.checked,
+                            })
+                          }
+                        />
+                        <textarea
+                          value={block.content.text}
+                          onChange={(e) => {
+                            updateBlock(block.id, { ...block.content, text: e.target.value });
+                            autoGrow(e.target);
+                          }}
+                          placeholder="Todo item"
+                          style={{ overflow: 'hidden', resize: 'none' }}
+                        />
+                      </>
+                    ) : (
+                      <textarea
+                        value={block.content}
+                        onChange={(e) => {
+                          updateBlock(block.id, e.target.value);
+                          autoGrow(e.target);
+                        }}
+                        placeholder="Start typing..."
+                        style={{ overflow: 'hidden', resize: 'none' }}
+                      />
+                    )}
                     <button onClick={() => deleteBlock(block.id)}>🗑️</button>
                   </div>
-                );
-              } else {
-                // Text block
-                return (
-                  <div key={block.id} className="block-row">
-                    <textarea
-                      value={block.content}
-                      onChange={(e) => {
-                        updateBlock(block.id, e.target.value);
-                        autoGrow(e.target);
-                      }}
-                      placeholder="Start typing..."
-                      style={{ overflow: 'hidden', resize: 'none' }}
-                    />
-                    <button onClick={() => deleteBlock(block.id)}>🗑️</button>
-                  </div>
-                );
-              }
-            })}
-            <div className="add-block-menu">
-              <button onClick={() => addBlock('text')}>+ Add Text Block</button>
-              <button onClick={() => addBlock('todo')}>+ Add Todo Block</button>
-            </div>
-            <div className="undo-redo-buttons">
-              <button onClick={undo} disabled={undoStack.length === 0}>Undo</button>
-              <button onClick={redo} disabled={redoStack.length === 0}>Redo</button>
-            </div>
-          </>
-        ) : (
-          <div className="home-page">
-            <h1>Welcome to Notes!</h1>
-            <p>
-              This is the home page. Select a page or create a new one to
-              start taking notes.
-            </p>
-            <h2>Coming Updates...</h2>
-            <ul>
-              <li>Different Users</li>
-              <li>Level system for word count + word count + character count</li>
-              <li>Chatbot / Summarizer</li>
-            </ul>
+                ))}
+                <div className="add-block-menu">
+                  <button onClick={() => addBlock('text')}>+ Add Text Block</button>
+                  <button onClick={() => addBlock('todo')}>+ Add Todo Block</button>
+                </div>
+                <div className="undo-redo-buttons">
+                  <button onClick={undo} disabled={undoStack.length === 0}>Undo</button>
+                  <button onClick={redo} disabled={redoStack.length === 0}>Redo</button>
+                </div>
+              </>
+            ) : (
+              <div className="home-page">
+                <h1>Welcome to Notes!</h1>
+                <p>Select a page or create a new one to start taking notes.</p>
+                <h2>Coming Updates...</h2>
+                <ul>
+                  <li>Different Users</li>
+                  <li>Level system for word count + word count + character count</li>
+                  <li>Chatbot / Summarizer</li>
+                </ul>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </>
+      )}
     </div>
   );
 }

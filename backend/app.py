@@ -1,13 +1,26 @@
 # Do LAST after setting configurations and database model
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
-from models import db, Page, Block
+from models import db, Page, Block, User
+
+# to get user_id
+def get_current_user():
+    user_id = session.get('user_id')
+    if not user_id:
+        return None
+    return User.query.get(user_id)
 
 # open app
 app = Flask(__name__)
-CORS(app)  # enable CORS for frontend-backend communication (access to all, should change after testing)
+app.secret_key = 'something'
+app.config['SESSION_COOKIE_DOMAIN'] = 'localhost'
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SECURE'] = False
+
+CORS(app, origins=["http://localhost:5173", "http://localhost:5050"], supports_credentials=True)
 
 # database configuration (using SQLite for local development)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///mydatabase.db"
@@ -16,31 +29,41 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 # connect database
 db.init_app(app)
 
-# create tables automatically before the first request
-@app.before_request
-def create_tables():
-    db.create_all()
-
 # return all pages
 @app.route('/pages', methods=['GET'])
 def get_pages():
-    pages = Page.query.order_by(Page.id).all()  # Query all pages from DB (ordered by id)
-    return jsonify([p.to_dict() for p in pages])  # Convert each to dict
+    user = get_current_user()
+    if not user:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    pages = Page.query.filter_by(user_id=user.id).order_by(Page.title).all() # Query all pages from DB (ordered by id)
+    return jsonify([p.to_dict() for p in pages]) # Convert each to dict
 
 # create a new page
 @app.route('/pages', methods=['POST'])
 def create_page():
-    data = request.get_json()  # Get JSON body from request
-    page = Page(title=data['title'], parent_id=data.get('parent_id'))  # Create Page instance
-    db.session.add(page)  # Add to DB session
-    db.session.commit()  # Save to DB
+    user = get_current_user()
+    if not user:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    data = request.get_json() # Get JSON body from request
+    page = Page(title=data['title'], parent_id=data.get('parent_id'), user_id=user.id) # Create Page instance
+    db.session.add(page) # Add to DB session
+    db.session.commit() # Save to DB
     return jsonify(page.to_dict()), 201  # Return created page
 
 # rename a page
 @app.route('/pages/<int:page_id>', methods=['PUT'])
 def update_page(page_id):
-    data = request.get_json()
+    user = get_current_user()
+    if not user:
+        return jsonify({'error': 'Unauthorized'}), 401
+
     page = Page.query.get_or_404(page_id)
+    if page.user_id != user.id:
+        return jsonify({'error': 'Forbidden'}), 403
+
+    data = request.get_json()
     page.title = data.get('title', page.title)
     db.session.commit()
     return jsonify(page.to_dict())
@@ -48,7 +71,14 @@ def update_page(page_id):
 # delete a page
 @app.route('/pages/<int:page_id>', methods=['DELETE'])
 def delete_page(page_id):
+    user = get_current_user()
+    if not user:
+        return jsonify({'error': 'Unauthorized'}), 401
+
     page = Page.query.get_or_404(page_id)
+    if page.user_id != user.id:
+        return jsonify({'error': 'Forbidden'}), 403
+
     db.session.delete(page)
     db.session.commit()
     return '', 204  # 204 No Content means success with no response body
@@ -56,28 +86,34 @@ def delete_page(page_id):
 # get all blocks for a page
 @app.route('/pages/<int:page_id>/blocks')
 def get_blocks(page_id):
+    user = get_current_user()
+    if not user:
+        return jsonify({'error': 'Unauthorized'}), 401
+
     page = Page.query.get(page_id)
-    if not page:
-        return jsonify({'error': 'Page not found'}), 404
+    if not page or page.user_id != user.id:
+        return jsonify({'error': 'Page not found or unauthorized'}), 404
 
     blocks = [block.to_dict() for block in page.blocks]
-
     return jsonify(blocks)
 
 # create a new block
 @app.route('/blocks', methods=['POST'])
 def create_block():
+    user = get_current_user()
+    if not user:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
     data = request.get_json()
-
     page_id = data.get('page_id')
     block_type = data.get('type', 'text')
     content = data.get('content')
     order_index = data.get('order_index')
 
-    # Validate page exists
+    # Validate page and user
     page = Page.query.get(page_id)
-    if not page:
-        return jsonify({'error': 'Page not found'}), 404
+    if not page or page.user_id != user.id:
+        return jsonify({'error': 'Page not found or unauthorized'}), 404
 
     # Set default content based on block_type
     if block_type == 'todo':
@@ -106,43 +142,94 @@ def create_block():
 # update a block's content
 @app.route('/blocks/<int:block_id>', methods=['PUT'])
 def update_block(block_id):
+    user = get_current_user()
+    if not user:
+        return jsonify({'error': 'Unauthorized'}), 401
+
     block = Block.query.get(block_id)
     if not block:
         return jsonify({'error': 'Block not found'}), 404
 
-    data = request.get_json()
+    if block.page.user_id != user.id:
+        return jsonify({'error': 'Forbidden'}), 403
 
+    data = request.get_json()
     content = data.get('content')
 
     if block.type == 'todo':
         if not isinstance(content, dict):
             return jsonify({'error': 'Invalid content for todo block'}), 400
-
         checked = content.get('checked')
         text = content.get('text')
-
         if checked is None or text is None:
             return jsonify({'error': 'Both checked and text required'}), 400
-
         block.content = {'checked': bool(checked), 'text': str(text)}
-
     else:
         if not isinstance(content, str):
             return jsonify({'error': 'Invalid content for text block'}), 400
-
         block.content = content
 
     db.session.commit()
-
     return jsonify(block.to_dict())
 
 # delete a block
 @app.route('/blocks/<int:block_id>', methods=['DELETE'])
 def delete_block(block_id):
+    user = get_current_user()
+    if not user:
+        return jsonify({'error': 'Unauthorized'}), 401
+
     block = Block.query.get_or_404(block_id)
+    if block.page.user_id != user.id:
+        return jsonify({'error': 'Forbidden'}), 403
+
     db.session.delete(block)
     db.session.commit()
     return '', 204
 
+# user registration
+@app.route('/register', methods=['POST'])
+def register():
+    data = request.get_json()
+    username = data['username']
+    password = data['password']
+    if User.query.filter_by(username=username).first():
+        return jsonify({'error': 'User already exists'}), 400
+    user = User(username=username)
+    user.set_password(password)
+    db.session.add(user)
+    db.session.commit()
+    return jsonify({'message': 'User registered successfully'}), 201
+
+# user login
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    user = User.query.filter_by(username=data['username']).first()
+    if user and user.check_password(data['password']):
+        session['user_id'] = user.id
+        return jsonify({'message': 'Logged in successfully'})
+    return jsonify({'error': 'Invalid credentials'}), 401
+
+# user logout
+@app.route('/logout', methods=['POST'])
+def logout():
+    session.pop('user_id', None)
+    return jsonify({'message': 'Logged out'})
+
+# record user session
+@app.route('/user/stats')
+def user_stats():
+    user = get_current_user()
+    if not user:
+        return jsonify({'error': 'Unauthorized'}), 401
+    return jsonify({'username': user.username})
+
+@app.route('/test-cors')
+def test_cors():
+    return jsonify({"ok": True})
+
 if __name__ == '__main__':
-    app.run(host='127.0.0.1', port=5000, debug=True)
+    with app.app_context():
+        db.create_all()
+    app.run(host='localhost', port=5050, debug=True)
