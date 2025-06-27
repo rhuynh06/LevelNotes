@@ -30,7 +30,7 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SECURE'] = False
 
-frontend_origin = os.environ.get("FRONTEND_URL", "http://localhost:5173") # https://rhuynh06.github.io
+frontend_origin = os.environ.get("https://rhuynh06.github.io", "http://localhost:5173")
 CORS(app, origins=[frontend_origin], supports_credentials=True)
 
 # database configuration (using SQLite for local development)
@@ -279,4 +279,4 @@ def test_cors():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5050)
