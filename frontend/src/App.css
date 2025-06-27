@@ -395,15 +395,16 @@ div.auth-box {
   color: var(--accent);
   font-weight: bold;
   cursor: pointer;
-  padding: 0;
+  padding: 5px;
   font-family: var(--font-body);
+  box-shadow: none;
 }
 
-.auth-box p button:hover {
+.auth-box button:hover {
   color: white;
 }
 
-/* ,... */
+/* contentEditable */
 .content-editable {
   min-height: 1.2em;         /* roughly 1 line height */
   width: 100%;               /* full width */
