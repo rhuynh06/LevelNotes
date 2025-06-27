@@ -407,7 +407,6 @@ function App() {
                 <p>Select a page or create a new one to start taking notes.</p>
                 <h2>Coming Updates...</h2>
                 <ul>
-                  <li>Level system for word count + word count + character count</li>
                   <li>Chatbot / Summarizer</li>
                 </ul>
               </div>
