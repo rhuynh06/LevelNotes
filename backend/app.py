@@ -33,7 +33,6 @@ app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SECURE'] = False
 
 CORS(app, origins=[
-    "http://localhost:5173",    # local dev frontend
     "https://rhuynh06.github.io"  # your GitHub Pages frontend
 ], supports_credentials=True)
 
