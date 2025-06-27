@@ -21,7 +21,7 @@ function App() {
   const titleRef = useRef(null);
   const editableRefs = useRef({});
 
-  const site = 'http://localhost:5050';
+  const site = import.meta.env.RENDER_BACKEND_URL || 'http://localhost:5050';
 
   // Auto-grow function for contentEditable divs
   function autoGrow(el) {

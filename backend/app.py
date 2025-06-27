@@ -5,6 +5,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from models import db, Page, Block, User
 from sqlalchemy import func, cast, String
+import os
 
 # to get user_id
 def get_current_user():
@@ -24,13 +25,13 @@ def count_words(content):
 
 # open app
 app = Flask(__name__)
-app.secret_key = 'something'
-app.config['SESSION_COOKIE_DOMAIN'] = 'localhost'
+app.secret_key = os.environ.get("SECRET_KEY", "dev-secret")
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SECURE'] = False
 
-CORS(app, origins=["http://localhost:5173", "http://localhost:5050"], supports_credentials=True)
+frontend_origin = os.environ.get("FRONTEND_URL", "http://localhost:5173") # https://rhuynh06.github.io
+CORS(app, origins=[frontend_origin], supports_credentials=True)
 
 # database configuration (using SQLite for local development)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///mydatabase.db"
@@ -278,4 +279,4 @@ def test_cors():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-    app.run(host='localhost', port=5050, debug=True)
+    app.run(debug=True)
