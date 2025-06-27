@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import './App.css';
 
 function App() {
@@ -13,18 +13,32 @@ function App() {
   const [authMode, setAuthMode] = useState('login');
   const [authUsername, setAuthUsername] = useState('');
   const [authPassword, setAuthPassword] = useState('');
+  const prevLevel = useRef(null);
+  const [levelUp, setLevelUp] = useState(false);
 
   const site = 'http://localhost:5050';
+
+  const triggerLevelUpAnimation = () => {
+    setLevelUp(true);
+    setTimeout(() => setLevelUp(false), 2000);
+  };
 
   useEffect(() => {
     fetch(`${site}/user/stats`, { method: 'GET', credentials: 'include' })
       .then(res => res.ok ? res.json() : null)
       .then(data => {
-        if (data?.username) {
-          setUser(data.username);
-          fetchPages();
+          if (data?.username) {
+            setUser(data);
+            fetchPages();
+
+            if (prevLevel.current !== null && data.level > prevLevel.current) {
+              triggerLevelUpAnimation();
+            }
+
+            prevLevel.current = data.level;
+          }
         }
-      });
+      );
   }, []);
 
   const fetchPages = () => {
@@ -34,6 +48,16 @@ function App() {
         setPages(pages);
         if (pages.length > 0) {
           selectPage(pages[0]);
+        }
+      });
+  };
+
+  const fetchStats = () => {
+    fetch(`${site}/user/stats`, { credentials: 'include' })
+      .then(res => res.json())
+      .then(stats => {
+        if (stats && stats.level !== undefined) {
+          setUser(stats);
         }
       });
   };
@@ -122,6 +146,7 @@ function App() {
       .then(res => res.json())
       .then((updated) => {
         setBlocks(blocks.map((b) => (b.id === blockId ? updated : b)));
+        fetchStats();
       });
   };
 
@@ -183,8 +208,8 @@ function App() {
           fetch(`${site}/user/stats`, { credentials: 'include' })
             .then(res => res.json())
             .then(stats => {
-              if (stats.username) {
-                setUser(stats.username);
+              if (stats) {
+                setUser(stats);
                 fetchPages();
               } else {
                 console.error('Stats fetch failed:', stats);
@@ -263,10 +288,6 @@ function App() {
       ) : (
         <>
           <div className="sidebar">
-            <div className="auth-info">
-              Logged in as <strong>{user}</strong>{' '}
-              <button onClick={logout}>Logout</button>
-            </div>
             <h3
               className="clickable-header"
               onClick={() => setSelectedPage(null)}
@@ -300,6 +321,24 @@ function App() {
             <button onClick={() => setDarkMode(!darkMode)} className="toggle-mode">
               Toggle {darkMode ? 'Light' : 'Dark'} Mode
             </button>
+            {user?.username && (
+              <div className="auth-info">
+                Logged in as <strong>{user.username}</strong><br />
+                Level {user.level}
+                {levelUp && (
+                  <div className="level-up-popup">🎉 Level Up!</div>
+                )}
+                <progress
+                  value={user.progress}
+                  max={user.next_level_words}
+                  style={{ width: '100%' }}
+                />
+                <div className="info-footer">
+                  <small>{user.progress} / {user.next_level_words} words</small>
+                  <button className="logout" onClick={logout}>Logout</button>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="editor">
@@ -368,7 +407,6 @@ function App() {
                 <p>Select a page or create a new one to start taking notes.</p>
                 <h2>Coming Updates...</h2>
                 <ul>
-                  <li>Different Users</li>
                   <li>Level system for word count + word count + character count</li>
                   <li>Chatbot / Summarizer</li>
                 </ul>

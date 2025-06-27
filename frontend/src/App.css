@@ -63,6 +63,30 @@ html, body, #root {
   color: var(--accent-hover);
 }
 
+.auth-info progress {
+  appearance: none;
+  height: 10px;
+  border-radius: 5px;
+  background-color: #eee;
+}
+.auth-info progress::-webkit-progress-bar {
+  background-color: #eee;
+  border-radius: 5px;
+}
+.auth-info progress::-webkit-progress-value {
+  background-color: #4caf50;
+  border-radius: 5px;
+}
+
+.info-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.5rem; /* optional spacing */
+}
+
+.info-footer button { padding: 2%; }
+
 /* Inputs */
 input {
   padding: 10px;

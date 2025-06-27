@@ -4,6 +4,7 @@ from flask import Flask, request, jsonify, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from models import db, Page, Block, User
+from sqlalchemy import func, cast, String
 
 # to get user_id
 def get_current_user():
@@ -11,6 +12,15 @@ def get_current_user():
     if not user_id:
         return None
     return User.query.get(user_id)
+
+# count TOTAL words
+def count_words(content):
+    if isinstance(content, dict):
+        text = content.get('text', '')
+    else:
+        text = content
+    # Split by whitespace, count words
+    return len(text.strip().split()) if text.strip() else 0
 
 # open app
 app = Flask(__name__)
@@ -103,28 +113,24 @@ def create_block():
     user = get_current_user()
     if not user:
         return jsonify({'error': 'Unauthorized'}), 401
-    
+
     data = request.get_json()
     page_id = data.get('page_id')
     block_type = data.get('type', 'text')
     content = data.get('content')
     order_index = data.get('order_index')
 
-    # Validate page and user
     page = Page.query.get(page_id)
     if not page or page.user_id != user.id:
         return jsonify({'error': 'Page not found or unauthorized'}), 404
 
-    # Set default content based on block_type
     if block_type == 'todo':
-        # Expect content as dict with checked and text; fallback to defaults
         if not isinstance(content, dict):
             content = {'checked': False, 'text': ''}
         else:
             content.setdefault('checked', False)
             content.setdefault('text', '')
     else:
-        # For text blocks, content should be string
         if not isinstance(content, str):
             content = ''
 
@@ -135,6 +141,11 @@ def create_block():
         order_index=order_index
     )
     db.session.add(block)
+
+    # Add new block words to user's lifetime count
+    words = count_words(content)
+    user.word_count = (user.word_count or 0) + words
+
     db.session.commit()
 
     return jsonify(block.to_dict()), 201
@@ -142,34 +153,39 @@ def create_block():
 # update a block's content
 @app.route('/blocks/<int:block_id>', methods=['PUT'])
 def update_block(block_id):
-    user = get_current_user()
-    if not user:
+    if 'user_id' not in session:
         return jsonify({'error': 'Unauthorized'}), 401
 
-    block = Block.query.get(block_id)
-    if not block:
-        return jsonify({'error': 'Block not found'}), 404
-
-    if block.page.user_id != user.id:
-        return jsonify({'error': 'Forbidden'}), 403
-
+    block = Block.query.get_or_404(block_id)
     data = request.get_json()
-    content = data.get('content')
 
+    old_text = ""
     if block.type == 'todo':
-        if not isinstance(content, dict):
-            return jsonify({'error': 'Invalid content for todo block'}), 400
-        checked = content.get('checked')
-        text = content.get('text')
-        if checked is None or text is None:
-            return jsonify({'error': 'Both checked and text required'}), 400
-        block.content = {'checked': bool(checked), 'text': str(text)}
+        old_text = block.content.get('text', '') if isinstance(block.content, dict) else ''
     else:
-        if not isinstance(content, str):
-            return jsonify({'error': 'Invalid content for text block'}), 400
-        block.content = content
+        old_text = block.content.get('text', '') if isinstance(block.content, dict) else block.content
 
+    # Update block content
+    block.content = data.get('content')
     db.session.commit()
+
+    # Get new text
+    new_text = ""
+    if block.type == 'todo':
+        new_text = block.content.get('text', '') if isinstance(block.content, dict) else ''
+    else:
+        new_text = block.content.get('text', '') if isinstance(block.content, dict) else block.content
+
+    # Count delta
+    old_words = len(old_text.split())
+    new_words = len(new_text.split())
+    delta = max(new_words - old_words, 0)  # Only count additions
+
+    # Update user's total word count
+    user = User.query.get(session['user_id'])
+    user.word_count += delta
+    db.session.commit()
+
     return jsonify(block.to_dict())
 
 # delete a block
@@ -183,9 +199,14 @@ def delete_block(block_id):
     if block.page.user_id != user.id:
         return jsonify({'error': 'Forbidden'}), 403
 
+    # Subtract block words from user's lifetime count
+    words = count_words(block.content)
+    user.word_count = max(user.word_count - words, 0)
+
     db.session.delete(block)
     db.session.commit()
     return '', 204
+
 
 # user registration
 @app.route('/register', methods=['POST'])
@@ -220,10 +241,35 @@ def logout():
 # record user session
 @app.route('/user/stats')
 def user_stats():
-    user = get_current_user()
-    if not user:
+    if 'user_id' not in session:
         return jsonify({'error': 'Unauthorized'}), 401
-    return jsonify({'username': user.username})
+
+    user = User.query.get(session['user_id'])
+
+    def level_info(word_count):
+        level = 0
+        threshold = 100
+        increment = 200
+        while word_count >= threshold:
+            level += 1
+            word_count -= threshold
+            threshold += increment * level
+
+        return {
+            'level': level,
+            'progress': word_count,
+            'next_level_words': threshold
+        }
+
+    info = level_info(user.word_count)
+
+    return jsonify({
+        'username': user.username,
+        'word_count': user.word_count,
+        'level': info['level'],
+        'progress': info['progress'],
+        'next_level_words': info['next_level_words']
+    })
 
 @app.route('/test-cors')
 def test_cors():
