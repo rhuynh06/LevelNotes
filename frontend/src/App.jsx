@@ -1,5 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import './App.css';
+import dark from './assets/dark.png'
+import light from './assets/light.png'
 
 function App() {
   const [pages, setPages] = useState([]);
@@ -403,10 +405,12 @@ function App() {
               </>
             ) : (
               <div className="home-page">
-                <h1>Welcome to Notes!</h1>
+                <h1>Welcome to LevelNotes!</h1>
+                <img src={darkMode ? dark : light}></img>
                 <p>Select a page or create a new one to start taking notes.</p>
                 <h2>Coming Updates...</h2>
                 <ul>
+                  <li>Every level should add new avatar to user selection (from weakest to strongest in solo leveling)</li>
                   <li>Chatbot / Summarizer</li>
                 </ul>
               </div>
