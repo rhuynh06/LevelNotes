@@ -32,8 +32,10 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SECURE'] = False
 
-frontend_origin = os.environ.get("FRONTEND_URL", "http://localhost:5173")
-CORS(app, origins=[frontend_origin], supports_credentials=True)
+CORS(app, origins=[
+    "http://localhost:5173",    # local dev frontend
+    "https://rhuynh06.github.io"  # your GitHub Pages frontend
+], supports_credentials=True)
 
 # database configuration (using SQLite for local development)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///mydatabase.db"
