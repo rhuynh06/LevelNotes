@@ -23,5 +23,6 @@ dist-ssr
 *.sln
 *.sw?
 
-# Other
-*.env
+# private
+/frontend/.env
+/backend/.env

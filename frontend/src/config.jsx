@@ -1,7 +1,5 @@
-const isLocalhost =
-  window.location.hostname === "localhost" ||
-  window.location.hostname === "127.0.0.1";
+const config = {
+  backendUrl: import.meta.env.VITE_BACKEND_URL || '',
+};
 
-export const BACKEND_URL = isLocalhost
-  ? "http://localhost:5050"
-  : "https://notes-app-79ky.onrender.com";
+export default config;
