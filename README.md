@@ -1,19 +1,19 @@
-# 📒 LevelNotes
+# LevelNotes
 
-LevelNotes is a full-stack, Notion-inspired note-taking app with gamified leveling. Users can create pages, add editable text and todo blocks, and level up based on how much they write.
+LevelNotes is a full-stack, Notion-inspired note-taking app that **gamifies writing**. Users can create rich text pages, add editable blocks (text and to-do), and **level up** as they write more—offering gentle encouragement and a sense of progress. It's a productivity tool designed to make note-taking feel rewarding..
 
-## ✨ Features
+## Features
 
-- 📝 Rich-text editing with live syncing
-- ✅ TODO blocks with checkbox functionality
-- 🌑 Dark/light mode toggle
-- 🎮 Gamified user levels based on word count
-- 🔐 Auth (register/login/logout with sessions)
-- 🚀 Deployed full stack (e.g., Render, Vercel)
+- Rich-text editing with live syncing
+- TODO blocks with checkbox functionality
+- Dark/light mode toggle (Solo Leveling Themed)
+- Gamified user levels based on word count
+- Auth (register/login/logout with sessions)
+- Deployed full stack (e.g., Render, Vercel)
 
 ---
 
-## 🏗️ Tech Stack
+## Tech Stack
 
 - **Frontend**: React + TypeScript + CSS
 - **Backend**: Node.js + Express + Prisma + SQLite/PostgreSQL
