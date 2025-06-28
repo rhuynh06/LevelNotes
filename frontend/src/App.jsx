@@ -18,6 +18,7 @@ function App() {
   const [authPassword, setAuthPassword] = useState('');
   const [levelUp, setLevelUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [editingBlockId, setEditingBlockId] = useState(null);
   const prevLevel = useRef(null);
   const titleRef = useRef(null);
   const editableRefs = useRef({});
@@ -242,6 +243,20 @@ function App() {
     });
   };
 
+  useEffect(() => {
+    blocks.forEach((block) => {
+      const el = editableRefs.current[block.id];
+      if (!el || block.id === editingBlockId) return;
+      if (block.type === 'text' && el.innerText !== block.content) {
+        el.innerText = block.content;
+        autoGrow(el);
+      } else if (block.type === 'todo' && el.innerText !== block.content.text) {
+        el.innerText = block.content.text;
+        autoGrow(el);
+      }
+    });
+  }, [blocks, editingBlockId]);
+
   return (
     <div className="app-container">
       {!user ? (
@@ -366,28 +381,20 @@ function App() {
                   data-placeholder="Page title"
                 />
                 {blocks.map((block) => (
-                  <div
-                    key={block.id}
-                    className={`block-row ${block.type === 'todo' ? 'todo-block' : ''}`}
-                  >
+                  <div key={block.id} className={`block-row ${block.type === 'todo' ? 'todo-block' : ''}`}>
                     {block.type === 'text' ? (
                       <div
                         contentEditable
                         suppressContentEditableWarning={true}
-                        ref={(el) => {
-                          if (el && el.innerText !== block.content) {
-                            editableRefs.current[block.id] = el;
-                            el.innerText = block.content
-                          }
-                        }}
+                        ref={(el) => (editableRefs.current[block.id] = el)}
                         onInput={(e) => {
                           autoGrow(e.currentTarget);
-                          const text = e.currentTarget.innerText;
-                          updateBlock(block.id, text);
+                          setEditingBlockId(block.id);
+                          updateBlock(block.id, e.currentTarget.innerText);
                         }}
                         onBlur={(e) => {
-                          const text = e.currentTarget.innerText;
-                          updateBlock(block.id, text);
+                          updateBlock(block.id, e.currentTarget.innerText);
+                          setEditingBlockId(null);
                         }}
                         data-placeholder="Start typing..."
                         className="block-editable content-editable"
@@ -407,27 +414,22 @@ function App() {
                         <div
                           contentEditable
                           suppressContentEditableWarning={true}
-                          ref={(el) => {
-                            if (el && el.innerText !== block.content.text) {
-                              editableRefs.current[block.id] = el;
-                              el.innerText = block.content.text
-                            }
-                          }}
+                          ref={(el) => (editableRefs.current[block.id] = el)}
                           onInput={(e) => {
                             autoGrow(e.currentTarget);
-                            const text = e.currentTarget.innerText;
-                            updateBlock(block.id, { ...block.content, text });
+                            setEditingBlockId(block.id);
+                            updateBlock(block.id, { ...block.content, text: e.currentTarget.innerText });
                           }}
                           onBlur={(e) => {
-                            const text = e.currentTarget.innerText;
-                            updateBlock(block.id, { ...block.content, text });
+                            updateBlock(block.id, { ...block.content, text: e.currentTarget.innerText });
+                            setEditingBlockId(null);
                           }}
                           data-placeholder="TODO"
                           className="block-editable content-editable"
                           style={{
                             overflow: 'hidden',
                             resize: 'none',
-                            textDecoration: block.content.checked ? 'line-through' : 'none'
+                            textDecoration: block.content.checked ? 'line-through' : 'none',
                           }}
                         />
                       </>
