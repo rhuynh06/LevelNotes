@@ -28,11 +28,22 @@ def count_words(content):
 # open app
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret")
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_SAMESITE'] = 'None'
 app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SECURE'] = False
+app.config['SESSION_COOKIE_SECURE'] = True
 
-CORS(app, origins=["https://rhuynh06.github.io"], supports_credentials=True)
+CORS(app, origins=["http://localhost:5173", "https://rhuynh06.github.io"], supports_credentials=True)
+
+# set CORS manually
+@app.after_request
+def add_cors_headers(response):
+    origin = request.headers.get('Origin')
+    if origin in ['https://rhuynh06.github.io', 'http://localhost:5173']:
+        response.headers.add('Access-Control-Allow-Origin', origin)
+        response.headers.add('Access-Control-Allow-Credentials', 'true')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
+    return response
 
 # database configuration (using SQLite for local development)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///mydatabase.db"
