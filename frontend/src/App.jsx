@@ -447,6 +447,7 @@ function App() {
                 <p>Select a page or create a new one to start taking notes.</p>
                 <h2>Coming Updates...</h2>
                 <ul>
+                  <li>Better Text Editor, limitations due to Render free tier</li>
                   <li>Chatbot / Summarizer</li>
                 </ul>
               </div>
