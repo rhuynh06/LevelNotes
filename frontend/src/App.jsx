@@ -24,11 +24,10 @@ function App() {
 
   const site = BACKEND_URL;
 
-  // Auto-grow function for contentEditable divs
   function autoGrow(el) {
     if (!el) return;
-    el.style.height = 'auto'; // Reset height
-    el.style.height = el.scrollHeight + 'px'; // Grow to content height
+    el.style.height = 'auto';
+    el.style.height = el.scrollHeight + 'px';
   }
 
   const triggerLevelUpAnimation = () => {
@@ -52,22 +51,6 @@ function App() {
         }
       });
   }, []);
-
-  // Sync title contentEditable text & auto-grow on selectedPage title change
-  useEffect(() => {
-    if (titleRef.current && selectedPage) {
-      if (titleRef.current.innerText !== selectedPage.title) {
-        titleRef.current.innerText = selectedPage.title;
-      }
-      autoGrow(titleRef.current);
-    }
-  }, [selectedPage?.title]);
-
-  const onTitleInput = (e) => {
-    const el = e.currentTarget;
-    autoGrow(el);
-    renamePage(selectedPage.id, el.innerText);
-  };
 
   const fetchPages = () => {
     fetch(`${site}/pages`, { credentials: 'include' })
@@ -362,7 +345,11 @@ function App() {
                   contentEditable
                   suppressContentEditableWarning={true}
                   className="page-title content-editable"
-                  onInput={onTitleInput}
+                  onInput={(e) => {
+                    autoGrow(e.currentTarget);
+                    renamePage(selectedPage.id, e.currentTarget.textContent);
+                  }}
+                  dangerouslySetInnerHTML={{ __html: selectedPage.title }}
                   data-placeholder="Page title"
                 />
                 {blocks.map((block) => (
@@ -375,18 +362,18 @@ function App() {
                         contentEditable
                         suppressContentEditableWarning={true}
                         ref={(el) => {
-                          if (el && el.innerText !== block.content) {
+                          if (el && el.textContent !== block.content) {
                             editableRefs.current[block.id] = el;
-                            el.innerText = block.content
+                            el.textContent = block.content;
                           }
                         }}
                         onInput={(e) => {
                           autoGrow(e.currentTarget);
-                          const text = e.currentTarget.innerText;
+                          const text = e.currentTarget.textContent;
                           updateBlock(block.id, text);
                         }}
                         onBlur={(e) => {
-                          const text = e.currentTarget.innerText;
+                          const text = e.currentTarget.textContent;
                           updateBlock(block.id, text);
                         }}
                         data-placeholder="Start typing..."
@@ -408,18 +395,18 @@ function App() {
                           contentEditable
                           suppressContentEditableWarning={true}
                           ref={(el) => {
-                            if (el && el.innerText !== block.content.text) {
+                            if (el && el.textContent !== block.content.text) {
                               editableRefs.current[block.id] = el;
-                              el.innerText = block.content.text
+                              el.textContent = block.content.text;
                             }
                           }}
                           onInput={(e) => {
                             autoGrow(e.currentTarget);
-                            const text = e.currentTarget.innerText;
+                            const text = e.currentTarget.textContent;
                             updateBlock(block.id, { ...block.content, text });
                           }}
                           onBlur={(e) => {
-                            const text = e.currentTarget.innerText;
+                            const text = e.currentTarget.textContent;
                             updateBlock(block.id, { ...block.content, text });
                           }}
                           data-placeholder="TODO"
@@ -447,7 +434,6 @@ function App() {
                 <p>Select a page or create a new one to start taking notes.</p>
                 <h2>Coming Updates...</h2>
                 <ul>
-                  <li>Better Text Editor, limitations due to Render free tier</li>
                   <li>Chatbot / Summarizer</li>
                 </ul>
               </div>
