@@ -22,7 +22,6 @@ def count_words(content):
         text = content.get('text', '')
     else:
         text = content
-    # Split by whitespace, count words
     return len(text.strip().split()) if text.strip() else 0
 
 # open app
@@ -172,29 +171,34 @@ def update_block(block_id):
     block = Block.query.get_or_404(block_id)
     data = request.get_json()
 
-    old_text = ""
-    if block.type == 'todo':
-        old_text = block.content.get('text', '') if isinstance(block.content, dict) else ''
-    else:
-        old_text = block.content.get('text', '') if isinstance(block.content, dict) else block.content
+    def get_text_content(content):
+        if content is None:
+            return ""
+        if isinstance(content, dict):
+            return content.get('text', '')
+        return str(content)
+
+    def count_words(text):
+        return len(text.split()) + text.count('\n')
+
+    # Get old text
+    old_content = block.content
+    old_text = get_text_content(old_content)
+    old_words = count_words(old_text)
 
     # Update block content
     block.content = data.get('content')
     db.session.commit()
 
     # Get new text
-    new_text = ""
-    if block.type == 'todo':
-        new_text = block.content.get('text', '') if isinstance(block.content, dict) else ''
-    else:
-        new_text = block.content.get('text', '') if isinstance(block.content, dict) else block.content
+    new_content = block.content
+    new_text = get_text_content(new_content)
+    new_words = count_words(new_text)
 
-    # Count delta
-    old_words = len(old_text.split())
-    new_words = len(new_text.split())
-    delta = max(new_words - old_words, 0)  # Only count additions
+    # Calculate delta (only positive changes)
+    delta = max(new_words - old_words, 0)
 
-    # Update user's total word count
+    # Update user's word count
     user = User.query.get(session['user_id'])
     user.word_count += delta
     db.session.commit()

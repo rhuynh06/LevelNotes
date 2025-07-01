@@ -323,7 +323,7 @@ function App() {
                 Logged in as <strong>{user.username}</strong>
                 <br />
                 Level {user.level}
-                {levelUp && <div className="level-up-popup">🎉 Level Up!</div>}
+                {levelUp && <div className="level-up-popup">🎉 Level Up!</div> /* FIX */}
                 <progress value={user.progress} max={user.next_level_words} style={{ width: '100%' }} />
                 <div className="info-footer">
                   <small>
@@ -362,7 +362,7 @@ function App() {
                         contentEditable
                         suppressContentEditableWarning={true}
                         ref={(el) => {
-                          if (el && el.textContent !== block.content) {
+                          if (el && el.textContent !== block.content) { // FIX
                             editableRefs.current[block.id] = el;
                             el.textContent = block.content;
                           }
@@ -395,7 +395,7 @@ function App() {
                           contentEditable
                           suppressContentEditableWarning={true}
                           ref={(el) => {
-                            if (el && el.textContent !== block.content.text) {
+                            if (el && el.textContent !== block.content.text) { // FIX
                               editableRefs.current[block.id] = el;
                               el.textContent = block.content.text;
                             }
@@ -434,6 +434,9 @@ function App() {
                 <p>Select a page or create a new one to start taking notes.</p>
                 <h2>Coming Updates...</h2>
                 <ul>
+                  <li>Fix word count not counting new worlds after newline</li>
+                  <li>Words still glitching / deleting itself and snapping to front</li>
+                  <li>Level up message not working</li>
                   <li>Chatbot / Summarizer</li>
                 </ul>
               </div>

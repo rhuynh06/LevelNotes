@@ -21,7 +21,7 @@
   --border: #2b2c37;
   --accent: #5a47ff;
   --accent-hover: #7c66ff;
-  --level: #39FF14
+  --level: #39ff14
 }
 
 /* Base styles using variables */
@@ -224,9 +224,31 @@ input:focus {
   gap: 8px;
 }
 
-.todo-block input[type="checkbox"] {
+/* Hide the default checkbox */
+input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
   width: 20px;
   height: 20px;
+  border: 2px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Checkbox checked state */
+input[type="checkbox"]:checked {
+  background-color: var(--bg);
+  border-color: var(--accent);
+}
+
+/* Checkmark unchecked */
+input[type="checkbox"]:checked::before {
+  content: "✖";
+  color: var(--text);
+  font-size: 14px;
 }
 
 /* Buttons */
@@ -406,19 +428,19 @@ div.auth-box {
 
 /* contentEditable */
 .content-editable {
-  min-height: 1.2em;         /* roughly 1 line height */
-  width: 100%;               /* full width */
+  min-height: 1.2em;
+  width: 100%;
   border: 1px solid var(--border, #ccc);
   padding: 8px;
   box-sizing: border-box;
-  overflow-y: hidden;        /* hide scrollbar */
-  white-space: pre-wrap;     /* allow wrapping and preserve spaces */
+  overflow-y: hidden;
+  white-space: pre-wrap;
   line-height: 1.2em;
   border-radius: 6px;
   font-family: inherit;
   font-size: 1rem;
   outline: none;
-  resize: none;              /* prevent manual resizing */
+  resize: none;
   background-color: transparent;
 }
 
