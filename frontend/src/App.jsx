@@ -4,6 +4,7 @@ import dark from './assets/dark.png';
 import light from './assets/light.png';
 import show from './assets/show.png';
 import hide from './assets/hide.png';
+import trash from './assets/trash.png';
 import { BACKEND_URL } from "../config";
 
 function App() {
@@ -36,12 +37,6 @@ function App() {
         if (data?.username) {
           setUser(data);
           fetchPages();
-
-          if (prevLevel.current !== null && data.level > prevLevel.current) {
-            triggerLevelUpAnimation();
-          }
-
-          prevLevel.current = data.level;
         }
       });
   }, []);
@@ -64,6 +59,10 @@ function App() {
         if (stats && stats.level !== undefined) {
           setUser(stats);
         }
+        if (prevLevel.current !== null && stats.level > prevLevel.current) {
+            triggerLevelUpAnimation();
+          }
+        prevLevel.current = stats.level;
       });
   };
 
@@ -140,17 +139,22 @@ function App() {
   };
 
   const updateBlock = (blockId, content) => {
+    const wordCount = countWords(typeof content === 'string' ? content : content.text);
+    
     fetch(`${site}/blocks/${blockId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content }),
+      body: JSON.stringify({ 
+        content,
+        word_count: wordCount // Send explicit word count
+      }),
       credentials: 'include',
     })
       .then(res => res.json())
       .then(updated => {
         setBlocks(blocks.map(b => (b.id === blockId ? updated : b)));
-        fetchStats();
-      })
+        fetchStats(); // Refresh stats
+      });
   };
 
   const deleteBlock = (blockId) => {
@@ -217,6 +221,17 @@ function App() {
       setBlocks([]);
       window.location.reload();
     });
+  };
+
+  const countWords = (text) => {
+    if (!text) return 0;
+    // Replace all types of spaces and newlines with single space
+    return text.replace(/[\n\r\t]/g, ' ')
+              .replace(/\s+/g, ' ')
+              .trim()
+              .split(' ')
+              .filter(word => word.length > 0)
+              .length;
   };
 
   return (
@@ -304,8 +319,9 @@ function App() {
                     e.stopPropagation();
                     deletePage(page.id);
                   }}
+                  className='trash'
                 >
-                  🗑️
+                  <img src={trash}></img>
                 </button>
               </div>
             ))}
@@ -317,12 +333,19 @@ function App() {
                 Logged in as <strong>{user.username}</strong>
                 <br />
                 Level {user.level}
-                {levelUp && <div className="level-up-popup">🎉 Level Up!</div> /* FIX */}
-                <progress value={user.progress} max={user.next_level_words} style={{ width: '100%' }} />
-                <div className="info-footer">
-                  <small>
+                {levelUp && <div className="level-up-popup">🎉 Level Up! 🎉</div>}
+                <div className="progress-container">
+                  <progress
+                    value={user.progress}
+                    max={user.next_level_words}
+                    className="custom-progress"
+                  />
+                  <div className="progress-text">
                     {user.progress} / {user.next_level_words} words
-                  </small>
+                  </div>
+                </div>
+                <div className="info-footer">
+                  <p>If you delete words, you must save then continue to update word count.</p>
                   <button className="logout" onClick={logout}>
                     Logout
                   </button>
@@ -370,7 +393,8 @@ function App() {
                           const textWithNewlines = html
                             .replace(/<div>/g, '\n')
                             .replace(/<\/div>/g, '')
-                            .replace(/<br\s*\/?>/g, '\n');
+                            .replace(/<br\s*\/?>/g, '\n')
+                            .replace(/&nbsp;/g, ' ');
                           updateBlock(block.id, textWithNewlines);
                         }}
                         dangerouslySetInnerHTML={{
@@ -411,17 +435,21 @@ function App() {
                           className="block-editable content-editable"
                           style={{
                             textDecoration: block.content.checked ? 'line-through' : 'none',
-                            whiteSpace: 'pre-wrap', // Preserve newlines if any
+                            whiteSpace: 'pre-wrap'
                           }}
                         />
                       </>
                     )}
-                    <button onClick={() => deleteBlock(block.id)}>🗑️</button>
+                    <button onClick={() => deleteBlock(block.id)}
+                      className='trash'>
+                      <img src={trash}></img>
+                    </button>
                   </div>
                 ))}
                 <div className="edit-block-menu">
                   <button onClick={() => addBlock('text')}>+ Add Text</button>
                   <button onClick={() => addBlock('todo')}>+ Add Todo</button>
+                  <button>Save / Update</button>
                 </div>
               </>
             ) : (
@@ -431,8 +459,6 @@ function App() {
                 <p>Select a page or create a new one to start taking notes.</p>
                 <h2>Coming Updates...</h2>
                 <ul>
-                  <li>Fix word count not counting new worlds after newline</li>
-                  <li>Level up message not working</li>
                   <li>Chatbot / Summarizer</li>
                 </ul>
               </div>

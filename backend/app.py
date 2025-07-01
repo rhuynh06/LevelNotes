@@ -18,11 +18,16 @@ def get_current_user():
 
 # count TOTAL words
 def count_words(content):
+    if content is None:
+        return 0
     if isinstance(content, dict):
         text = content.get('text', '')
     else:
-        text = content
-    return len(text.strip().split()) if text.strip() else 0
+        text = str(content)
+    
+    # Normalize all whitespace
+    text = ' '.join(text.split())
+    return len(text.split()) if text else 0
 
 # open app
 app = Flask(__name__)
@@ -168,39 +173,25 @@ def update_block(block_id):
     if 'user_id' not in session:
         return jsonify({'error': 'Unauthorized'}), 401
 
+    user = User.query.get(session['user_id'])
     block = Block.query.get_or_404(block_id)
     data = request.get_json()
-
-    def get_text_content(content):
-        if content is None:
-            return ""
-        if isinstance(content, dict):
-            return content.get('text', '')
-        return str(content)
-
-    def count_words(text):
-        return len(text.split()) + text.count('\n')
-
-    # Get old text
-    old_content = block.content
-    old_text = get_text_content(old_content)
-    old_words = count_words(old_text)
+    
+    # Get previous word count
+    old_word_count = count_words(block.content)
 
     # Update block content
     block.content = data.get('content')
     db.session.commit()
 
-    # Get new text
-    new_content = block.content
-    new_text = get_text_content(new_content)
-    new_words = count_words(new_text)
+    # get new word count
+    new_word_count = count_words(block.content)
 
     # Calculate delta (only positive changes)
-    delta = max(new_words - old_words, 0)
+    delta = max(new_word_count - old_word_count, 0)
 
     # Update user's word count
-    user = User.query.get(session['user_id'])
-    user.word_count += delta
+    user.word_count = (user.word_count or 0) + delta
     db.session.commit()
 
     return jsonify(block.to_dict())
@@ -265,12 +256,10 @@ def user_stats():
 
     def level_info(word_count):
         level = 0
-        threshold = 100
-        increment = 200
+        threshold = 1000
         while word_count >= threshold:
             level += 1
-            word_count -= threshold
-            threshold += increment * level
+            threshold += 2 * (level - 1)
 
         return {
             'level': level,

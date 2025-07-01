@@ -58,11 +58,3 @@ class User(db.Model):
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
-
-    def calculate_level(self):
-        # Example: level n requires base * 2^(n-1) words
-        base = 1000
-        level = 1
-        while self.word_count >= base * (2 ** (level - 1)):
-            level += 1
-        return level - 1
