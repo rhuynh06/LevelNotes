@@ -24,12 +24,6 @@ function App() {
 
   const site = BACKEND_URL;
 
-  function autoGrow(el) {
-    if (!el) return;
-    el.style.height = 'auto';
-    el.style.height = el.scrollHeight + 'px';
-  }
-
   const triggerLevelUpAnimation = () => {
     setLevelUp(true);
     setTimeout(() => setLevelUp(false), 1000);
@@ -304,7 +298,7 @@ function App() {
                 className={`page-item ${selectedPage?.id === page.id ? 'selected' : ''}`}
                 onClick={() => selectPage(page)}
               >
-                <span>{page.title}</span>
+                <span style={{ whiteSpace: 'pre-wrap' }} >{page.title}</span>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -344,13 +338,22 @@ function App() {
                   ref={titleRef}
                   contentEditable
                   suppressContentEditableWarning={true}
-                  className="page-title content-editable"
-                  onInput={(e) => {
-                    autoGrow(e.currentTarget);
-                    renamePage(selectedPage.id, e.currentTarget.textContent);
+                  onBlur={(e) => {
+                    // Replace <div> and <br> with \n before saving (preserve \n)
+                    const html = e.currentTarget.innerHTML;
+                    const textWithNewlines = html
+                      .replace(/<div>/g, '\n')
+                      .replace(/<\/div>/g, '')
+                      .replace(/<br\s*\/?>/g, '\n');
+                    renamePage(selectedPage.id, textWithNewlines)
                   }}
-                  dangerouslySetInnerHTML={{ __html: selectedPage.title }}
-                  data-placeholder="Page title"
+                  dangerouslySetInnerHTML={{
+                    // Convert stored \n to HTML line breaks for display
+                    __html: selectedPage.title.replace(/\n/g, '<br>'),
+                  }}
+                  style={{ whiteSpace: 'pre-wrap' }} // Preserves visual line breaks
+                  data-placeholder="Page title."
+                  className="page-title content-editable"
                 />
                 {blocks.map((block) => (
                   <div
@@ -360,22 +363,20 @@ function App() {
                     {block.type === 'text' ? (
                       <div
                         contentEditable
-                        suppressContentEditableWarning={true}
-                        ref={(el) => {
-                          if (el && el.textContent !== block.content) { // FIX
-                            editableRefs.current[block.id] = el;
-                            el.textContent = block.content;
-                          }
-                        }}
-                        onInput={(e) => {
-                          autoGrow(e.currentTarget);
-                          const text = e.currentTarget.textContent;
-                          updateBlock(block.id, text);
-                        }}
+                        suppressContentEditableWarning
+                        ref={(el) => (editableRefs.current[block.id] = el)}
                         onBlur={(e) => {
-                          const text = e.currentTarget.textContent;
-                          updateBlock(block.id, text);
+                          const html = e.currentTarget.innerHTML;
+                          const textWithNewlines = html
+                            .replace(/<div>/g, '\n')
+                            .replace(/<\/div>/g, '')
+                            .replace(/<br\s*\/?>/g, '\n');
+                          updateBlock(block.id, textWithNewlines);
                         }}
+                        dangerouslySetInnerHTML={{
+                          __html: block.content.replace(/\n/g, '<br>'),
+                        }}
+                        style={{ whiteSpace: 'pre-wrap' }}
                         data-placeholder="Start typing..."
                         className="block-editable content-editable"
                       />
@@ -393,28 +394,24 @@ function App() {
                         />
                         <div
                           contentEditable
-                          suppressContentEditableWarning={true}
+                          suppressContentEditableWarning
                           ref={(el) => {
-                            if (el && el.textContent !== block.content.text) { // FIX
+                            if (el) {
                               editableRefs.current[block.id] = el;
                               el.textContent = block.content.text;
                             }
                           }}
-                          onInput={(e) => {
-                            autoGrow(e.currentTarget);
-                            const text = e.currentTarget.textContent;
-                            updateBlock(block.id, { ...block.content, text });
-                          }}
                           onBlur={(e) => {
-                            const text = e.currentTarget.textContent;
-                            updateBlock(block.id, { ...block.content, text });
+                            updateBlock(block.id, {
+                              ...block.content,
+                              text: e.currentTarget.textContent,
+                            });
                           }}
                           data-placeholder="TODO"
                           className="block-editable content-editable"
                           style={{
-                            overflow: 'hidden',
-                            resize: 'none',
-                            textDecoration: block.content.checked ? 'line-through' : 'none'
+                            textDecoration: block.content.checked ? 'line-through' : 'none',
+                            whiteSpace: 'pre-wrap', // Preserve newlines if any
                           }}
                         />
                       </>
@@ -435,7 +432,6 @@ function App() {
                 <h2>Coming Updates...</h2>
                 <ul>
                   <li>Fix word count not counting new worlds after newline</li>
-                  <li>Words still glitching / deleting itself and snapping to front</li>
                   <li>Level up message not working</li>
                   <li>Chatbot / Summarizer</li>
                 </ul>
