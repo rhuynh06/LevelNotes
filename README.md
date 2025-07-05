@@ -27,8 +27,8 @@ LevelNotes is a full-stack, Notion-inspired note-taking app that **gamifies writ
 
 ```bash
 # Clone the repo
-git clone https://github.com/rhuynh06/notes-app.git
-cd notes-app
+git clone https://github.com/rhuynh06/LevelNotes.git
+cd LevelNotes
 
 # Backend setup
 cd backend
