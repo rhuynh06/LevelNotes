@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  base: "/notes-app/",
+  base: "/LevelNotes/",
   build: {
     outDir: "../docs",
     emptyOutDir: true
