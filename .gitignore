@@ -26,6 +26,3 @@ dist-ssr
 # private
 /frontend/.env
 /backend/.env
-
-# generated
-/docs/
