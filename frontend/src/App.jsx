@@ -307,27 +307,32 @@ function App() {
             >
               Add Page
             </button>
-            {pages.map((page) => (
-              <div
-                key={page.id}
-                className={`page-item ${selectedPage?.id === page.id ? 'selected' : ''}`}
-                onClick={() => selectPage(page)}
-              >
-                <span style={{ whiteSpace: 'pre-wrap' }} >{page.title}</span>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deletePage(page.id);
-                  }}
-                  className='trash'
+
+            <div className="page-list-scroll">
+              {pages.map((page) => (
+                <div
+                  key={page.id}
+                  className={`page-item ${selectedPage?.id === page.id ? 'selected' : ''}`}
+                  onClick={() => selectPage(page)}
                 >
-                  <img src={trash}></img>
-                </button>
-              </div>
-            ))}
+                  <span style={{ whiteSpace: 'pre-wrap' }}>{page.title}</span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deletePage(page.id);
+                    }}
+                    className="trash"
+                  >
+                    <img src={trash} />
+                  </button>
+                </div>
+              ))}
+            </div>
+
             <button onClick={() => setDarkMode(!darkMode)} className="toggle-mode">
               Toggle {darkMode ? 'Light' : 'Dark'} Mode
             </button>
+
             {user?.username && (
               <div className="auth-info">
                 Logged in as <strong>{user.username}</strong>

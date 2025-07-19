@@ -51,10 +51,34 @@ img {
   width: 260px;
   background: var(--sidebar-bg);
   border-right: 1px solid var(--border);
+  overflow: hidden;
   padding: 24px 18px;
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.page-list-scroll {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  margin: 1rem 0;
+  padding-right: 5px; /* space for scrollbar */
+  max-height: 300px; /* optional: cap scroll height */
+}
+
+.page-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  padding: 0.5rem;
+  background: #fff;
+  margin-bottom: 0.5rem;
+  border-radius: 4px;
+}
+
+.page-item.selected {
+  background: #d0eaff;
 }
 
 .clickable-header {
