@@ -461,7 +461,7 @@ function App() {
               <div className="home-page">
                 <h1>Welcome to LevelNotes!</h1>
                 <img src={darkMode ? dark : light} alt="theme" />
-                <p>Select a page or create a new one to start taking notes.</p>
+                <p>Select a page or create a new one to start taking notes and leveling up.</p>
                 <h2>Coming Updates...</h2>
                 <ul>
                   <li>Chatbot / Summarizer</li>
