@@ -49,7 +49,7 @@ def add_cors_headers(response):
         response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
     return response
 
-# database configuration (using SQLite for local development)
+# database configuration
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///mydatabase.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
@@ -74,7 +74,7 @@ def create_page():
         return jsonify({'error': 'Unauthorized'}), 401
     
     data = request.get_json() # Get JSON body from request
-    page = Page(title=data['title'], parent_id=data.get('parent_id'), user_id=user.id) # Create Page instance
+    page = Page(title=data['title'], user_id=user.id) # Create Page instance
     db.session.add(page) # Add to DB session
     db.session.commit() # Save to DB
     return jsonify(page.to_dict()), 201  # Return created page

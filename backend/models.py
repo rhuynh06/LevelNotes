@@ -8,15 +8,12 @@ class Page(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     title = db.Column(db.String(100), nullable=False)
-    parent_id = db.Column(db.Integer, db.ForeignKey('page.id'), nullable=True)
-    children = db.relationship('Page', backref=db.backref('parent', remote_side=[id]))
     blocks = db.relationship('Block', backref='page', cascade='all, delete-orphan', order_by='Block.order_index')
 
     def to_dict(self):
         return {
             'id': self.id,
-            'title': self.title,
-            'parent_id': self.parent_id
+            'title': self.title
         }
     
 class Block(db.Model):
