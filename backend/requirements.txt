@@ -4,3 +4,5 @@ Flask-SQLAlchemy
 SQLAlchemy
 Werkzeug
 python-dotenv
+
+# use by pip install -r requirements.txt

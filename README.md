@@ -16,7 +16,7 @@ LevelNotes is a full-stack, Notion-inspired note-taking app that **gamifies writ
 ## Tech Stack
 
 - **Frontend**: React + TypeScript + CSS
-- **Backend**: Node.js + Express + Prisma + SQLite/PostgreSQL
+- **Backend**: Node.js + Express + Prisma + SQLite
 - **Database**: Prisma ORM
 - **Auth**: Cookie-based sessions
 - **Hosting**: Compatible with Render/Vercel
